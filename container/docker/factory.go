@@ -126,6 +126,9 @@ type dockerFactory struct {
 	thinPoolWatcher *devicemapper.ThinPoolWatcher
 
 	zfsWatcher *zfs.ZfsWatcher
+
+	// 容器id白名单
+	containerIdWhiteList []string
 }
 
 func (f *dockerFactory) String() string {
@@ -180,7 +183,22 @@ func (f *dockerFactory) CanHandleAndAccept(name string) (bool, bool, error) {
 		return false, true, fmt.Errorf("error inspecting container: %v", err)
 	}
 
+	if len(f.containerIdWhiteList) > 0 {
+		if !contains(f.containerIdWhiteList, id) {
+			return true, false, nil
+		}
+	}
+
 	return true, true, nil
+}
+
+func contains(idWhiteList []string, id string) bool {
+	for _, whiteId := range idWhiteList {
+		if strings.HasPrefix(id, whiteId) {
+			return true
+		}
+	}
+	return false
 }
 
 func (f *dockerFactory) DebugInfo() map[string][]string {
@@ -303,7 +321,7 @@ func ensureThinLsKernelVersion(kernelVersion string) error {
 }
 
 // Register root container before running this function!
-func Register(factory info.MachineInfoFactory, fsInfo fs.FsInfo, includedMetrics container.MetricSet) error {
+func Register(factory info.MachineInfoFactory, fsInfo fs.FsInfo, includedMetrics container.MetricSet, idWhiteList []string) error {
 	client, err := Client()
 	if err != nil {
 		return fmt.Errorf("unable to communicate with docker daemon: %v", err)
@@ -351,18 +369,19 @@ func Register(factory info.MachineInfoFactory, fsInfo fs.FsInfo, includedMetrics
 
 	klog.V(1).Infof("Registering Docker factory")
 	f := &dockerFactory{
-		cgroupSubsystems:   cgroupSubsystems,
-		client:             client,
-		dockerVersion:      dockerVersion,
-		dockerAPIVersion:   dockerAPIVersion,
-		fsInfo:             fsInfo,
-		machineInfoFactory: factory,
-		storageDriver:      StorageDriver(dockerInfo.Driver),
-		storageDir:         RootDir(),
-		includedMetrics:    includedMetrics,
-		thinPoolName:       thinPoolName,
-		thinPoolWatcher:    thinPoolWatcher,
-		zfsWatcher:         zfsWatcher,
+		cgroupSubsystems:     cgroupSubsystems,
+		client:               client,
+		dockerVersion:        dockerVersion,
+		dockerAPIVersion:     dockerAPIVersion,
+		fsInfo:               fsInfo,
+		machineInfoFactory:   factory,
+		storageDriver:        StorageDriver(dockerInfo.Driver),
+		storageDir:           RootDir(),
+		includedMetrics:      includedMetrics,
+		thinPoolName:         thinPoolName,
+		thinPoolWatcher:      thinPoolWatcher,
+		zfsWatcher:           zfsWatcher,
+		containerIdWhiteList: idWhiteList,
 	}
 
 	container.RegisterContainerHandlerFactory(f, []watcher.ContainerWatchSource{watcher.Raw})

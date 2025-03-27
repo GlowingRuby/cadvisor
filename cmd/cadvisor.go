@@ -78,6 +78,8 @@ var perfEvents = flag.String("perf_events_config", "", "Path to a JSON file cont
 
 var resctrlInterval = flag.Duration("resctrl_interval", 0, "Resctrl mon groups updating interval. Zero value disables updating mon groups.")
 
+var isWhitelist = flag.String("id_whitelist", "", "A comma-separated list of container ids that needs to be collected")
+
 var (
 	// Metrics to be ignored.
 	// Tcp metrics are ignored by default.
@@ -135,7 +137,7 @@ func main() {
 
 	collectorHTTPClient := createCollectorHTTPClient(*collectorCert, *collectorKey)
 
-	resourceManager, err := manager.New(memoryStorage, sysFs, manager.HousekeepingConfigFlags, includedMetrics, &collectorHTTPClient, strings.Split(*rawCgroupPrefixWhiteList, ","), strings.Split(*envMetadataWhiteList, ","), *perfEvents, *resctrlInterval)
+	resourceManager, err := manager.New(memoryStorage, sysFs, manager.HousekeepingConfigFlags, includedMetrics, &collectorHTTPClient, strings.Split(*rawCgroupPrefixWhiteList, ","), strings.Split(*envMetadataWhiteList, ","), *perfEvents, *resctrlInterval, strings.Split(*isWhitelist, ","))
 	if err != nil {
 		klog.Fatalf("Failed to create a manager: %s", err)
 	}
