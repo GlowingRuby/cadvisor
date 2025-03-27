@@ -289,7 +289,7 @@ func (m *manager) PodmanContainer(containerName string, query *info.ContainerInf
 
 // Start the container manager.
 func (m *manager) Start() error {
-	m.containerWatchers = container.InitializePlugins(m, m.fsInfo, m.includedMetrics)
+	m.containerWatchers = container.InitializePlugins(m, m.fsInfo, m.includedMetrics, m.idWhiteList)
 
 	err := raw.Register(m, m.fsInfo, m.includedMetrics, m.rawContainerCgroupPathPrefixWhiteList)
 	if err != nil {
